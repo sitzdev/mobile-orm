@@ -165,7 +165,17 @@ public abstract class BaseModel extends SQLiteHelper {
     public int update(ORecordValue value, String selection, String[] args) {
         int count;
         SQLiteDatabase db = getWritableDatabase();
-        count = db.update(getTableName(), value.toContentValues(), selection, args);
+        ContentValues values = value.toContentValues();
+
+        HashMap<String, ORecordValue> m2oRecords = value.getM2ORelRecords();
+        if (!m2oRecords.isEmpty()) {
+            ORecordValue newValues = handleM2ORecords(m2oRecords);
+            for (String key : newValues.keySet()) {
+                values.put(key, newValues.getInt(key));
+            }
+        }
+
+        count = db.update(getTableName(), values, selection, args);
 
         HashMap<String, RelationValue> relationValue = value.getRelationValues();
         if (!relationValue.isEmpty()) {
@@ -193,6 +203,7 @@ public abstract class BaseModel extends SQLiteHelper {
                 ids.add(cr.getInt(0));
             } while (cr.moveToNext());
         }
+        cr.close();
         db.close();
         return ids.toArray(new Integer[ids.size()]);
     }
@@ -230,28 +241,38 @@ public abstract class BaseModel extends SQLiteHelper {
             RelationValue value = relationValueHashMap.get(key);
             OFieldType column = getColumn(key);
             if (column instanceof OOneToMany) {
-
+                manageO2MRelValue(column, value, recordIds);
             }
         }
     }
 
     private void manageO2MRelValue(OFieldType column, RelationValue value,
                                    Integer... recordIds) {
+        BaseModel refModel = createModel(column.getRefModel());
+        String refColumn = column.getRefColumn();
         for (RelationOperation key : value.getValues().keySet()) {
-            switch (key) {
-                case APPEND:
-                    for (Object obj : value.getValues().get(key)) {
-                        if (obj instanceof Integer) {
-
+            for (int id : recordIds) {
+                switch (key) {
+                    case APPEND:
+                        for (Object obj : value.getValues().get(key)) {
+                            if (obj instanceof Integer) {
+                                refModel.update(new ORecordValue()
+                                        .add(refColumn, id), (Integer) obj);
+                            }
+                            if (obj instanceof ORecordValue) {
+                                ORecordValue refRecord = (ORecordValue) obj;
+                                refRecord.put(refColumn, id);
+                                refModel.create(refRecord);
+                            }
                         }
-                    }
-                    break;
-                case REMOVE:
-                    break;
-                case REPLACE:
-                    break;
-                case SET_NULL:
-                    break;
+                        break;
+                    case REMOVE:
+                        break;
+                    case REPLACE:
+                        break;
+                    case SET_NULL:
+                        break;
+                }
             }
         }
     }

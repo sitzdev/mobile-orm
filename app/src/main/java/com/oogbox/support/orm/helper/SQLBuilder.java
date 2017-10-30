@@ -1,6 +1,7 @@
 package com.oogbox.support.orm.helper;
 
 import com.oogbox.support.orm.BaseModel;
+import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.helper.OFieldType;
 
 public class SQLBuilder {
@@ -34,6 +35,11 @@ public class SQLBuilder {
                         sql.append("'").append(field.getDefaultValue()).append("'");
                     else
                         sql.append(field.getDefaultValue());
+                }
+
+                if (field instanceof OManyToOne) {
+                    sql.append(" REFERENCES ").append(field.getRefModelTableName());
+                    sql.append(" ON DELETE SET NULL ");
                 }
                 sql.append(",");
             }

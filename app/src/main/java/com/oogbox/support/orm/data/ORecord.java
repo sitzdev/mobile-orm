@@ -71,7 +71,7 @@ public class ORecord extends RecordWrapper<ORecord> {
         int index = cr.getColumnIndex(column);
         switch (cr.getType(index)) {
             case Cursor.FIELD_TYPE_NULL:
-                value = false;
+                value = null;
                 break;
             case Cursor.FIELD_TYPE_STRING:
                 value = cr.getString(index);

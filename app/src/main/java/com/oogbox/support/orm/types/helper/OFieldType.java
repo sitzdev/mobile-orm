@@ -1,6 +1,7 @@
 package com.oogbox.support.orm.types.helper;
 
 import com.oogbox.support.orm.BaseModel;
+import com.oogbox.support.orm.annotation.DataModel;
 
 import java.util.HashMap;
 
@@ -108,5 +109,13 @@ public abstract class OFieldType<T> {
             return enumMap.get(key);
         }
         return null;
+    }
+
+    public String getRefModelTableName() {
+        DataModel dataModel = getRefModel().getAnnotation(DataModel.class);
+        if (dataModel != null) {
+            return dataModel.value().replaceAll("\\.", "_");
+        }
+        return getRefModel().getName().toLowerCase();
     }
 }
