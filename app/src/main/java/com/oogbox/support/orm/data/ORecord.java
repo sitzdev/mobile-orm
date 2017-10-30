@@ -6,7 +6,11 @@ import com.oogbox.support.orm.BaseModel;
 import com.oogbox.support.orm.helper.RecordWrapper;
 import com.oogbox.support.orm.types.OEnum;
 import com.oogbox.support.orm.types.OManyToOne;
+import com.oogbox.support.orm.types.OOneToMany;
 import com.oogbox.support.orm.types.helper.OFieldType;
+
+import java.util.Collections;
+import java.util.List;
 
 public class ORecord extends RecordWrapper<ORecord> {
 
@@ -39,6 +43,19 @@ public class ORecord extends RecordWrapper<ORecord> {
             }
         }
         return null;
+    }
+
+
+    public List<ORecord> readOne2Many(String key) {
+        if (model != null) {
+            OOneToMany col = (OOneToMany) model.getColumn(key);
+            Integer recordId = getInt("_id");
+            if (recordId != null) {
+                BaseModel refModel = model.createModel(col.getRefModel());
+                return refModel.select(col.getRefColumn() + " = ? ", new String[]{recordId + ""});
+            }
+        }
+        return Collections.emptyList();
     }
 
     public static ORecord fromCursor(Cursor cr) {

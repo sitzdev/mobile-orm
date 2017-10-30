@@ -14,6 +14,7 @@ public abstract class OFieldType<T> {
     private Object defValue = null;
     private HashMap<String, String> enumMap = new HashMap<>();
     private Class<? extends BaseModel> refModel;
+    private String refColumn;
 
     public OFieldType(String label) {
         fieldLabel = label;
@@ -23,6 +24,11 @@ public abstract class OFieldType<T> {
 
     public T setRefModel(Class<? extends BaseModel> refModel) {
         this.refModel = refModel;
+        return (T) this;
+    }
+
+    public T setRefColumn(String refColumn) {
+        this.refColumn = refColumn;
         return (T) this;
     }
 
@@ -87,6 +93,10 @@ public abstract class OFieldType<T> {
 
     public Class<? extends BaseModel> getRefModel() {
         return refModel;
+    }
+
+    public String getRefColumn() {
+        return refColumn;
     }
 
     public HashMap<String, String> getEnumMap() {

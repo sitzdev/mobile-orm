@@ -31,12 +31,16 @@ public class MainActivity extends AppCompatActivity {
 //        mobiles.create(mobile);
 
         ORecord record = mobiles.browse(1);
-        Log.e(">>", record + "<<");
 
-        Log.e(">>", "DEVICE ? " + record.getEnumValue("device_type"));
+        Log.e(">>BROWSE", record + "<<");
 
-        Log.e(">>",record.readMany2One("user_id")+"<<");
+        Log.e(">>ENUM", "DEVICE ? " + record.getEnumValue("device_type"));
 
+        Log.e(">>M2O", record.readMany2One("user_id") + "<<");
+
+
+        ORecord user = users.browse(1);
+        Log.e(">O2M", user.readOne2Many("mobile_ids") + "<<");
 
 //        Log.e(">>", mobiles.select()+"<<");
     }

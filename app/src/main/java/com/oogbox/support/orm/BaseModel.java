@@ -91,8 +91,12 @@ public abstract class BaseModel extends SQLiteHelper {
     }
 
     public List<ORecord> select() {
+        return select(null, null);
+    }
+
+    public List<ORecord> select(String selection, String[] args) {
         List<ORecord> records = new ArrayList<>();
-        Cursor cr = select(null, null, null,
+        Cursor cr = select(null, selection, args,
                 null, null, null, null);
         if (cr.moveToFirst()) {
             do {
