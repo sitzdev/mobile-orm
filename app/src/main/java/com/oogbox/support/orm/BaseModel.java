@@ -1,5 +1,6 @@
 package com.oogbox.support.orm;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -7,16 +8,21 @@ import android.database.sqlite.SQLiteDatabase;
 import com.oogbox.support.orm.annotation.DataModel;
 import com.oogbox.support.orm.data.ORecord;
 import com.oogbox.support.orm.data.ORecordValue;
+import com.oogbox.support.orm.data.RelationOperation;
+import com.oogbox.support.orm.data.RelationValue;
 import com.oogbox.support.orm.helper.SQLBuilder;
 import com.oogbox.support.orm.helper.SQLiteHelper;
 import com.oogbox.support.orm.types.ODateTime;
 import com.oogbox.support.orm.types.OInteger;
+import com.oogbox.support.orm.types.OManyToOne;
+import com.oogbox.support.orm.types.OOneToMany;
 import com.oogbox.support.orm.types.helper.OFieldType;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public abstract class BaseModel extends SQLiteHelper {
@@ -130,7 +136,24 @@ public abstract class BaseModel extends SQLiteHelper {
     public int create(ORecordValue value) {
         int newId;
         SQLiteDatabase db = getWritableDatabase();
-        newId = ((Long) db.insert(getTableName(), null, value.toContentValues())).intValue();
+        ContentValues values = value.toContentValues();
+
+        HashMap<String, ORecordValue> m2oRelRecords = value.getM2ORelRecords();
+        if (!m2oRelRecords.isEmpty()) {
+            ORecordValue newValues = handleM2ORecords(m2oRelRecords);
+            for (String key : newValues.keySet()) {
+                // Updating content values with updated value of m2o
+                values.put(key, newValues.getInt(key));
+            }
+        }
+
+        newId = ((Long) db.insert(getTableName(), null, values)).intValue();
+
+        HashMap<String, RelationValue> relationValue = value.getRelationValues();
+        if (!relationValue.isEmpty()) {
+            handleRelationRecords(relationValue, newId);
+        }
+
         db.close();
         return newId;
     }
@@ -143,6 +166,12 @@ public abstract class BaseModel extends SQLiteHelper {
         int count;
         SQLiteDatabase db = getWritableDatabase();
         count = db.update(getTableName(), value.toContentValues(), selection, args);
+
+        HashMap<String, RelationValue> relationValue = value.getRelationValues();
+        if (!relationValue.isEmpty()) {
+            handleRelationRecords(relationValue, getIds(selection, args));
+        }
+
         db.close();
         return count;
     }
@@ -155,6 +184,19 @@ public abstract class BaseModel extends SQLiteHelper {
         return count;
     }
 
+    public Integer[] getIds(String selection, String[] args) {
+        List<Integer> ids = new ArrayList<>();
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cr = db.query(getTableName(), new String[]{"_id"}, selection, args, null, null, null);
+        if (cr.moveToFirst()) {
+            do {
+                ids.add(cr.getInt(0));
+            } while (cr.moveToNext());
+        }
+        db.close();
+        return ids.toArray(new Integer[ids.size()]);
+    }
+
     public BaseModel createModel(Class<? extends BaseModel> model) {
         try {
             Constructor constructor = model.getConstructor(Context.class);
@@ -163,5 +205,54 @@ public abstract class BaseModel extends SQLiteHelper {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private ORecordValue handleM2ORecords(HashMap<String, ORecordValue> values) {
+        ORecordValue newRecordValue = new ORecordValue();
+        for (String key : values.keySet()) {
+            OFieldType column = getColumn(key);
+            if (column != null && column instanceof OManyToOne) {
+                BaseModel refModel = createModel(column.getRefModel());
+                if (refModel != null) {
+                    int refId = refModel.create(values.get(key));
+                    newRecordValue.put(key, refId);
+                }
+            }
+        }
+        return newRecordValue;
+    }
+
+    // Handling relation records
+    private void handleRelationRecords(HashMap<String, RelationValue> relationValueHashMap,
+                                       Integer... recordIds) {
+
+        for (String key : relationValueHashMap.keySet()) {
+            RelationValue value = relationValueHashMap.get(key);
+            OFieldType column = getColumn(key);
+            if (column instanceof OOneToMany) {
+
+            }
+        }
+    }
+
+    private void manageO2MRelValue(OFieldType column, RelationValue value,
+                                   Integer... recordIds) {
+        for (RelationOperation key : value.getValues().keySet()) {
+            switch (key) {
+                case APPEND:
+                    for (Object obj : value.getValues().get(key)) {
+                        if (obj instanceof Integer) {
+
+                        }
+                    }
+                    break;
+                case REMOVE:
+                    break;
+                case REPLACE:
+                    break;
+                case SET_NULL:
+                    break;
+            }
+        }
     }
 }
