@@ -17,6 +17,9 @@
         <meta-data
             android:name="DATABASE_VERSION"
             android:value="1" />
+        <meta-data
+            android:name="DATABASE_DEBUG"
+            android:value="true" />
 
         <activity android:name=".MainActivity">
             <intent-filter>

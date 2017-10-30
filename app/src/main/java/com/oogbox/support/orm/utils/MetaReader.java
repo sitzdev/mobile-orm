@@ -38,4 +38,12 @@ public class MetaReader {
         return 1;
     }
 
+    public static boolean isDatabaseDebug(Context context){
+        Bundle data= getManifestMeta(context);
+        if(data!=null){
+            return data.getBoolean(SQLiteHelper.KEY_DATABASE_DEBUG, false);
+        }
+        return false;
+    }
+
 }
