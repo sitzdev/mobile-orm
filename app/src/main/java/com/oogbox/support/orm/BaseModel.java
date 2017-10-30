@@ -186,6 +186,10 @@ public abstract class BaseModel extends SQLiteHelper {
         return count;
     }
 
+    public int delete(int _id) {
+        return delete("_id = ? ", new String[]{_id + ""});
+    }
+
     public int delete(String selection, String[] args) {
         int count;
         SQLiteDatabase db = getWritableDatabase();
@@ -236,7 +240,6 @@ public abstract class BaseModel extends SQLiteHelper {
     // Handling relation records
     private void handleRelationRecords(HashMap<String, RelationValue> relationValueHashMap,
                                        Integer... recordIds) {
-
         for (String key : relationValueHashMap.keySet()) {
             RelationValue value = relationValueHashMap.get(key);
             OFieldType column = getColumn(key);
@@ -246,8 +249,8 @@ public abstract class BaseModel extends SQLiteHelper {
         }
     }
 
-    private void manageO2MRelValue(OFieldType column, RelationValue value,
-                                   Integer... recordIds) {
+    @SuppressWarnings("unchecked")
+    private void manageO2MRelValue(OFieldType column, RelationValue value, Integer... recordIds) {
         BaseModel refModel = createModel(column.getRefModel());
         String refColumn = column.getRefColumn();
         for (RelationOperation key : value.getValues().keySet()) {
@@ -267,10 +270,33 @@ public abstract class BaseModel extends SQLiteHelper {
                         }
                         break;
                     case REMOVE:
+                        for (Object obj : value.getValues().get(key)) {
+                            if (obj instanceof Integer) {
+                                refModel.delete((Integer) obj);
+                            }
+                        }
                         break;
                     case REPLACE:
-                        break;
                     case SET_NULL:
+
+                        ORecordValue setNull = new ORecordValue();
+                        setNull.put(refColumn, null);
+                        refModel.update(setNull, refColumn + " = ?", new String[]{id + ""});
+
+                        if (key == RelationOperation.REPLACE) {
+                            for (Object obj : value.getValues().get(key)) {
+                                if (obj instanceof Integer) {
+                                    refModel.update(new ORecordValue()
+                                            .add(refColumn, id), (Integer) obj);
+                                }
+                                if (obj instanceof ORecordValue) {
+                                    ORecordValue refRecord = (ORecordValue) obj;
+                                    refRecord.put(refColumn, id);
+                                    refModel.create(refRecord);
+                                }
+                            }
+
+                        }
                         break;
                 }
             }
