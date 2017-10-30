@@ -13,6 +13,7 @@ import com.oogbox.support.orm.types.ODateTime;
 import com.oogbox.support.orm.types.OInteger;
 import com.oogbox.support.orm.types.helper.OFieldType;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,4 +151,13 @@ public abstract class BaseModel extends SQLiteHelper {
         return count;
     }
 
+    public BaseModel createModel(Class<? extends BaseModel> model) {
+        try {
+            Constructor constructor = model.getConstructor(Context.class);
+            return (BaseModel) constructor.newInstance(getContext());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

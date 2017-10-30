@@ -34,7 +34,8 @@ public class MainActivity extends AppCompatActivity {
         Log.e(">>", record + "<<");
 
         Log.e(">>", "DEVICE ? " + record.getEnumValue("device_type"));
-        
+
+        Log.e(">>",record.readMany2One("user_id")+"<<");
 
 
 //        Log.e(">>", mobiles.select()+"<<");

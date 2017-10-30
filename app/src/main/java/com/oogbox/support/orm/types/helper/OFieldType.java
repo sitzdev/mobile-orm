@@ -85,6 +85,10 @@ public abstract class OFieldType<T> {
         return defValue;
     }
 
+    public Class<? extends BaseModel> getRefModel() {
+        return refModel;
+    }
+
     public HashMap<String, String> getEnumMap() {
         return enumMap;
     }

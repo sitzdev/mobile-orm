@@ -5,6 +5,7 @@ import android.database.Cursor;
 import com.oogbox.support.orm.BaseModel;
 import com.oogbox.support.orm.helper.RecordWrapper;
 import com.oogbox.support.orm.types.OEnum;
+import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.helper.OFieldType;
 
 public class ORecord extends RecordWrapper<ORecord> {
@@ -26,6 +27,18 @@ public class ORecord extends RecordWrapper<ORecord> {
             }
         }
         return value;
+    }
+
+    public ORecord readMany2One(String key) {
+        Integer recordId = getInt(key);
+        if (recordId != null && model != null) {
+            OManyToOne m2o = (OManyToOne) model.getColumn(key);
+            BaseModel refModel = model.createModel(m2o.getRefModel());
+            if (refModel != null) {
+                return refModel.browse(recordId);
+            }
+        }
+        return null;
     }
 
     public static ORecord fromCursor(Cursor cr) {
@@ -58,4 +71,5 @@ public class ORecord extends RecordWrapper<ORecord> {
         }
         return value;
     }
+
 }
