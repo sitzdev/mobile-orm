@@ -36,6 +36,11 @@ public abstract class BaseModel extends SQLiteHelper {
     private OInteger _id = new OInteger("ID").autoIncrement().primaryKey();
     private ODateTime _write_date = new ODateTime("Local Write Date");
 
+    /**
+     * Get Model Name
+     *
+     * @return model name specified in @DataModel annotation or class simple name in lower case
+     */
     public String getModelName() {
         DataModel dataModel = getClass().getAnnotation(DataModel.class);
         if (dataModel != null) {
@@ -44,6 +49,11 @@ public abstract class BaseModel extends SQLiteHelper {
         return getClass().getSimpleName().toLowerCase();
     }
 
+    /**
+     * Get Table name generated from model name
+     *
+     * @return table name from model name
+     */
     public String getTableName() {
         String modelName = getModelName();
         if (modelName != null) {
@@ -52,6 +62,12 @@ public abstract class BaseModel extends SQLiteHelper {
         return null;
     }
 
+    /**
+     * Create @FieldType object with column name declared in model class.
+     *
+     * @param column name of the column to get from class
+     * @return OFieldType object with column properties
+     */
     public OFieldType getColumn(String column) {
         try {
             Field field = getClass().getDeclaredField(column);
@@ -73,6 +89,11 @@ public abstract class BaseModel extends SQLiteHelper {
         return null;
     }
 
+    /**
+     * Gets all declared columns of the model
+     *
+     * @return List of columns
+     */
     public List<OFieldType> getColumns() {
         List<OFieldType> columns = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
@@ -94,14 +115,31 @@ public abstract class BaseModel extends SQLiteHelper {
         return columns;
     }
 
+    /**
+     * Get the SQLBuilder for base statements (create)
+     *
+     * @return SQLBuilder object with model binding
+     */
     public SQLBuilder getSQLBuilder() {
         return new SQLBuilder(this);
     }
 
+    /**
+     * Select all records from data model (table)
+     *
+     * @return List of records (ORecord)
+     */
     public List<ORecord> select() {
         return select(null, null);
     }
 
+    /**
+     * Select all record with selection filters
+     *
+     * @param selection Selection where clause
+     * @param args      Arguments for selection
+     * @return List of records fetched from data model (table)
+     */
     public List<ORecord> select(String selection, String[] args) {
         List<ORecord> records = new ArrayList<>();
         Cursor cr = select(null, selection, args,
@@ -117,12 +155,31 @@ public abstract class BaseModel extends SQLiteHelper {
         return records;
     }
 
+    /**
+     * Select record based on where clause and other properties
+     *
+     * @param columns   Columns name to fetch
+     * @param selection Where clause
+     * @param args      Where clause arguments
+     * @param groupBy   group by column
+     * @param having    having clause
+     * @param orderBy   order by column (ASC, DESC)
+     * @param limit     limit for each request
+     * @return Cursor object with fetched records
+     */
+
     public Cursor select(String[] columns, String selection, String[] args, String groupBy,
                          String having, String orderBy, String limit) {
         SQLiteDatabase db = getReadableDatabase();
         return db.query(getTableName(), columns, selection, args, groupBy, having, orderBy, limit);
     }
 
+    /**
+     * Browse record based on primary key _id of record
+     *
+     * @param _id Unique id of record
+     * @return Record object
+     */
     public ORecord browse(int _id) {
         ORecord record = null;
         Cursor cr = select(null, "_id = ?", new String[]{_id + ""},
@@ -135,6 +192,20 @@ public abstract class BaseModel extends SQLiteHelper {
         return record;
     }
 
+    /**
+     * Create new record in the data model (table) with specified values
+     * <p>
+     * Here, when creating record in model it will check for relation records also
+     * <p>
+     * First many to one records are mapped with valid database id (if user passed new record object
+     * it will create record to related model first and than apply its new id to record to maintain local
+     * relationship between records)
+     * <p>
+     * Also One to many and Many to Many records are handled after creating main record.
+     *
+     * @param value Values to store in data model
+     * @return new created id
+     */
     public int create(ORecordValue value) {
         int newId;
         SQLiteDatabase db = getWritableDatabase();
@@ -160,9 +231,30 @@ public abstract class BaseModel extends SQLiteHelper {
         return newId;
     }
 
+    /**
+     * Update record with updated values for _id
+     *
+     * @param value New updated values
+     * @param _id   record id to update
+     * @return count for updated records
+     */
     public int update(ORecordValue value, int _id) {
         return update(value, "_id = ?", new String[]{_id + ""});
     }
+
+    /**
+     * Update multiple records with where clause and args
+     * <p>
+     * It will check for Many to one before updating any record to map valid ids for Many to one
+     * <p>
+     * Also it will check for One 2 many and many 2 many after updating main record to maintain proper
+     * relation between records
+     *
+     * @param value     values to update in model
+     * @param selection where clause to filter updating data
+     * @param args      arguments for where clause
+     * @return updated rows count
+     */
 
     public int update(ORecordValue value, String selection, String[] args) {
         int count;
@@ -188,10 +280,23 @@ public abstract class BaseModel extends SQLiteHelper {
         return count;
     }
 
+    /**
+     * Delete specified record
+     *
+     * @param _id record id
+     * @return counter of deleted records
+     */
     public int delete(int _id) {
         return delete("_id = ? ", new String[]{_id + ""});
     }
 
+    /**
+     * Delete multiple records based on selection
+     *
+     * @param selection where clause
+     * @param args      arguments for clause
+     * @return number of record deleted
+     */
     public int delete(String selection, String[] args) {
         int count;
         SQLiteDatabase db = getWritableDatabase();
@@ -200,6 +305,13 @@ public abstract class BaseModel extends SQLiteHelper {
         return count;
     }
 
+    /**
+     * Get all localIds based on selection
+     *
+     * @param selection selection where clause
+     * @param args      arguments for selection where clause
+     * @return Array of _ids
+     */
     public Integer[] getIds(String selection, String[] args) {
         List<Integer> ids = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
@@ -214,6 +326,12 @@ public abstract class BaseModel extends SQLiteHelper {
         return ids.toArray(new Integer[ids.size()]);
     }
 
+    /**
+     * Create model object from class path
+     *
+     * @param model model class path object
+     * @return new object of model related to model class
+     */
     public BaseModel createModel(Class<? extends BaseModel> model) {
         try {
             Constructor constructor = model.getConstructor(Context.class);
@@ -224,6 +342,7 @@ public abstract class BaseModel extends SQLiteHelper {
         return null;
     }
 
+    // Private
     private ORecordValue handleM2ORecords(HashMap<String, ORecordValue> values) {
         ORecordValue newRecordValue = new ORecordValue();
         for (String key : values.keySet()) {
