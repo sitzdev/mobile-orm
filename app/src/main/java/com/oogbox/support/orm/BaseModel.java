@@ -10,10 +10,12 @@ import com.oogbox.support.orm.data.ORecord;
 import com.oogbox.support.orm.data.ORecordValue;
 import com.oogbox.support.orm.data.RelationOperation;
 import com.oogbox.support.orm.data.RelationValue;
+import com.oogbox.support.orm.helper.M2MTable;
 import com.oogbox.support.orm.helper.SQLBuilder;
 import com.oogbox.support.orm.helper.SQLiteHelper;
 import com.oogbox.support.orm.types.ODateTime;
 import com.oogbox.support.orm.types.OInteger;
+import com.oogbox.support.orm.types.OManyToMany;
 import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.OOneToMany;
 import com.oogbox.support.orm.types.helper.OFieldType;
@@ -243,8 +245,14 @@ public abstract class BaseModel extends SQLiteHelper {
         for (String key : relationValueHashMap.keySet()) {
             RelationValue value = relationValueHashMap.get(key);
             OFieldType column = getColumn(key);
+            // One to Many
             if (column instanceof OOneToMany) {
                 manageO2MRelValue(column, value, recordIds);
+            }
+
+            // Many to Many
+            if (column instanceof OManyToMany) {
+                manageM2MRelValue(column, value, recordIds);
             }
         }
     }
@@ -293,6 +301,50 @@ public abstract class BaseModel extends SQLiteHelper {
                                     ORecordValue refRecord = (ORecordValue) obj;
                                     refRecord.put(refColumn, id);
                                     refModel.create(refRecord);
+                                }
+                            }
+
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    private void manageM2MRelValue(OFieldType column, RelationValue value, Integer... recordIds) {
+        M2MTable m2MTable = new M2MTable(getContext(), this, column);
+        for (RelationOperation key : value.getValues().keySet()) {
+            for (int id : recordIds) {
+                switch (key) {
+                    case APPEND:
+                        for (Object obj : value.getValues().get(key)) {
+                            if (obj instanceof Integer) {
+                                m2MTable.insert(id, (Integer) obj);
+                            }
+                            if (obj instanceof ORecordValue) {
+                                m2MTable.insert(id, (ORecordValue) obj);
+                            }
+                        }
+                        break;
+                    case REMOVE:
+                        for (Object obj : value.getValues().get(key)) {
+                            if (obj instanceof Integer) {
+                                m2MTable.removeRelRecord((Integer) obj);
+                            }
+                        }
+                        break;
+                    case SET_NULL:
+                        // No Option for M2M
+                        break;
+                    case REPLACE:
+                        m2MTable.removeAllRelation(id);
+                        if (key == RelationOperation.REPLACE) {
+                            for (Object obj : value.getValues().get(key)) {
+                                if (obj instanceof Integer) {
+                                    m2MTable.insert(id, (Integer) obj);
+                                }
+                                if (obj instanceof ORecordValue) {
+                                    m2MTable.insert(id, (ORecordValue) obj);
                                 }
                             }
 

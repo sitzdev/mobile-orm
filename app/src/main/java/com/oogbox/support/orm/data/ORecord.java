@@ -3,8 +3,10 @@ package com.oogbox.support.orm.data;
 import android.database.Cursor;
 
 import com.oogbox.support.orm.BaseModel;
+import com.oogbox.support.orm.helper.M2MTable;
 import com.oogbox.support.orm.helper.RecordWrapper;
 import com.oogbox.support.orm.types.OEnum;
+import com.oogbox.support.orm.types.OManyToMany;
 import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.OOneToMany;
 import com.oogbox.support.orm.types.helper.OFieldType;
@@ -58,6 +60,19 @@ public class ORecord extends RecordWrapper<ORecord> {
         return Collections.emptyList();
     }
 
+
+    public List<ORecord> readMany2Many(String key) {
+        if (model != null) {
+            OManyToMany col = (OManyToMany) model.getColumn(key);
+            Integer recordId = getInt("_id");
+            if (recordId != null) {
+                M2MTable m2MTable = new M2MTable(model.getContext(), model, col);
+                return m2MTable.readAll(recordId);
+            }
+        }
+        return Collections.emptyList();
+    }
+
     public static ORecord fromCursor(Cursor cr) {
         ORecord record = new ORecord();
         for (String column : cr.getColumnNames()) {
@@ -88,5 +103,4 @@ public class ORecord extends RecordWrapper<ORecord> {
         }
         return value;
     }
-
 }

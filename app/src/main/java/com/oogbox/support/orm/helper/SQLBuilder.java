@@ -1,11 +1,17 @@
 package com.oogbox.support.orm.helper;
 
 import com.oogbox.support.orm.BaseModel;
+import com.oogbox.support.orm.types.OManyToMany;
 import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.helper.OFieldType;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 public class SQLBuilder {
     private BaseModel model;
+    private List<OFieldType> many2Many = new ArrayList<>();
 
     public SQLBuilder(BaseModel model) {
         this.model = model;
@@ -43,9 +49,22 @@ public class SQLBuilder {
                 }
                 sql.append(",");
             }
+            if (field instanceof OManyToMany) {
+                many2Many.add(field);
+            }
         }
         sql.deleteCharAt(sql.lastIndexOf(","));
         sql.append(")");
         return sql.toString();
+    }
+
+
+    public HashMap<String, String> m2mStatements() {
+        HashMap<String, String> m2mStatements = new HashMap<>();
+        for (OFieldType column : many2Many) {
+            M2MTable m2MTable = new M2MTable(model.getContext(), model, column);
+            m2mStatements.put(m2MTable.getRelTableName(), m2MTable.createStatement());
+        }
+        return m2mStatements;
     }
 }

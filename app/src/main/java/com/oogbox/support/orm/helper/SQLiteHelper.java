@@ -9,6 +9,8 @@ import com.oogbox.support.orm.BaseModel;
 import com.oogbox.support.orm.listeners.ModelsListener;
 import com.oogbox.support.orm.utils.MetaReader;
 
+import java.util.HashMap;
+
 public abstract class SQLiteHelper extends SQLiteOpenHelper {
 
     private static final String TAG = SQLiteHelper.class.getSimpleName();
@@ -52,8 +54,16 @@ public abstract class SQLiteHelper extends SQLiteOpenHelper {
                 Log.v(TAG, "Database Name   : " + getDatabaseName());
                 ModelsListener listener = modelsListener.newInstance();
                 for (BaseModel model : listener.getModels(context)) {
-                    sqLiteDatabase.execSQL(model.getSQLBuilder().createStatement());
+                    SQLBuilder builder = model.getSQLBuilder();
+                    sqLiteDatabase.execSQL(builder.createStatement());
                     Log.v(TAG, "Table created " + model.getTableName());
+
+                    // Creating m2m tables
+                    HashMap<String, String> m2mStatements = builder.m2mStatements();
+                    for (String key : m2mStatements.keySet()) {
+                        sqLiteDatabase.execSQL(m2mStatements.get(key));
+                        Log.v(TAG, "Table created " + key);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
