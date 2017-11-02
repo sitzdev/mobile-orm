@@ -19,6 +19,7 @@ import com.oogbox.support.orm.types.OManyToMany;
 import com.oogbox.support.orm.types.OManyToOne;
 import com.oogbox.support.orm.types.OOneToMany;
 import com.oogbox.support.orm.types.helper.OFieldType;
+import com.oogbox.support.orm.utils.OOGDateUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -29,11 +30,20 @@ import java.util.List;
 
 public abstract class BaseModel extends SQLiteHelper {
 
+    public static final String KEY_IGNORE_WRITE_DATE = "ignore_write_date";
+
     public BaseModel(Context context) {
         super(context);
     }
 
+    /**
+     * Default primary key column for every model with auto increment. Basically
+     * used for maintain local relation and unique identification of record.
+     */
     private OInteger _id = new OInteger("ID").autoIncrement().primaryKey();
+    /**
+     * Store last write_date of record when you update. Used to identify in sync mechanism
+     */
     private ODateTime _write_date = new ODateTime("Local Write Date");
 
     /**
@@ -260,6 +270,11 @@ public abstract class BaseModel extends SQLiteHelper {
         int count;
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = value.toContentValues();
+        value.put("_write_date", OOGDateUtils.getUTCDate());
+        if (value.containsKey(KEY_IGNORE_WRITE_DATE)) {
+            value.remove(KEY_IGNORE_WRITE_DATE);
+            value.remove("_write_date");
+        }
 
         HashMap<String, ORecordValue> m2oRecords = value.getM2ORelRecords();
         if (!m2oRecords.isEmpty()) {

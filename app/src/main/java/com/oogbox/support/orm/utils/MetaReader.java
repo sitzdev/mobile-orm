@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 
 import com.oogbox.support.orm.helper.SQLiteHelper;
+import com.oogbox.support.orm.listeners.MobileORMConfigListener;
 
 public class MetaReader {
 
@@ -27,6 +28,17 @@ public class MetaReader {
         if (data != null) {
             return data.getString(SQLiteHelper.KEY_DATABASE_NAME, defaultName);
         }
+        if (SQLiteHelper.mobileORMConfigListener != null) {
+            try {
+                MobileORMConfigListener config = SQLiteHelper.mobileORMConfigListener.newInstance();
+                String dbName = config.getDatabaseName(context);
+                if (dbName != null) {
+                    return dbName;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         return defaultName;
     }
 
@@ -38,9 +50,9 @@ public class MetaReader {
         return 1;
     }
 
-    public static boolean isDatabaseDebug(Context context){
-        Bundle data= getManifestMeta(context);
-        if(data!=null){
+    public static boolean isDatabaseDebug(Context context) {
+        Bundle data = getManifestMeta(context);
+        if (data != null) {
             return data.getBoolean(SQLiteHelper.KEY_DATABASE_DEBUG, false);
         }
         return false;

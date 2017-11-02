@@ -20,8 +20,7 @@ public class MainActivity extends AppCompatActivity {
         users.delete(null, null);
         ORecordValue values = new ORecordValue();
         values.put("name", "DDS");
-        values.put("mobile_ids", new RelationValue()
-                .replace(3, 4));
+        values.put("mobile_ids", new RelationValue());
         int id = users.create(values);
 
         ORecord user = users.browse(id);

@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.oogbox.support.orm.BaseModel;
-import com.oogbox.support.orm.listeners.ModelsListener;
+import com.oogbox.support.orm.listeners.MobileORMConfigListener;
 import com.oogbox.support.orm.utils.MetaReader;
 
 import java.util.HashMap;
@@ -14,11 +14,12 @@ import java.util.HashMap;
 public abstract class SQLiteHelper extends SQLiteOpenHelper {
 
     private static final String TAG = SQLiteHelper.class.getSimpleName();
+    public static final String PROCESSOR_CLASS_PATH = "com.oogbox.runtime.orm.MobileORMConfig";
     public static final String KEY_DATABASE_NAME = "DATABASE_NAME";
     public static final String KEY_DATABASE_VERSION = "DATABASE_VERSION";
     public static final java.lang.String KEY_DATABASE_DEBUG = "DATABASE_DEBUG";
 
-    public static Class<? extends ModelsListener> modelsListener;
+    public static Class<? extends MobileORMConfigListener> mobileORMConfigListener;
 
     private Context context;
 
@@ -26,6 +27,17 @@ public abstract class SQLiteHelper extends SQLiteOpenHelper {
         super(context, MetaReader.getDatabaseName(context), null,
                 MetaReader.getDatabaseVersion(context));
         this.context = context;
+        if (mobileORMConfigListener == null) {
+            // No mobile orm config called. finding processor generated config.
+            try {
+                Class<?> processorCls = Class.forName(PROCESSOR_CLASS_PATH);
+                if (processorCls != null) {
+                    mobileORMConfigListener = (Class<? extends MobileORMConfigListener>) processorCls;
+                }
+            } catch (Exception e) {
+                Log.w("MobileORM->init()", "No Configuration found. Please call MobileORM.init() from your application class or use mobile-orm-compiler.");
+            }
+        }
     }
 
 
@@ -48,11 +60,10 @@ public abstract class SQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        // No processor. using listener
-        if (modelsListener != null) {
+        if (mobileORMConfigListener != null) {
             try {
                 Log.v(TAG, "Database Name   : " + getDatabaseName());
-                ModelsListener listener = modelsListener.newInstance();
+                MobileORMConfigListener listener = mobileORMConfigListener.newInstance();
                 for (BaseModel model : listener.getModels(context)) {
                     SQLBuilder builder = model.getSQLBuilder();
                     sqLiteDatabase.execSQL(builder.createStatement());
