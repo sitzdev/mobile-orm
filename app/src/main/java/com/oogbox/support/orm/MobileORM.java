@@ -1,7 +1,11 @@
 package com.oogbox.support.orm;
 
-import com.oogbox.support.orm.helper.SQLiteHelper;
-import com.oogbox.support.orm.listeners.MobileORMConfigListener;
+import android.content.Context;
+
+import com.oogbox.support.orm.core.helper.SQLiteHelper;
+import com.oogbox.support.orm.core.listeners.MobileORMConfigListener;
+import com.oogbox.support.orm.provider.ModelContentProvider;
+import com.oogbox.support.orm.utils.MetaReader;
 
 public class MobileORM {
 
@@ -11,8 +15,9 @@ public class MobileORM {
      *
      * @param config Mobile ORM Config implemented class
      */
-    public static void init(Class<? extends MobileORMConfigListener> config) {
+    public static void init(Context context, Class<? extends MobileORMConfigListener> config) {
         SQLiteHelper.mobileORMConfigListener = config;
+        ModelContentProvider.DB_AUTHORITY = MetaReader.getDatabaseAuthority(context);
     }
 
 }

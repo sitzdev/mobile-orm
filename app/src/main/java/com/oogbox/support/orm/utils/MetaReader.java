@@ -5,8 +5,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 
-import com.oogbox.support.orm.helper.SQLiteHelper;
-import com.oogbox.support.orm.listeners.MobileORMConfigListener;
+import com.oogbox.support.orm.core.helper.SQLiteHelper;
+import com.oogbox.support.orm.core.listeners.MobileORMConfigListener;
 
 public class MetaReader {
 
@@ -22,10 +22,32 @@ public class MetaReader {
         return null;
     }
 
+    public static Class<? extends MobileORMConfigListener> getConfigClass(Context context) {
+        Bundle data = getManifestMeta(context);
+        if (data != null && data.containsKey(SQLiteHelper.KEY_DATABASE_CONFIG)) {
+            try {
+                return (Class<? extends MobileORMConfigListener>)
+                        Class.forName(data.getString(SQLiteHelper.KEY_DATABASE_CONFIG));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    public static String getDatabaseAuthority(Context context) {
+        Bundle data = getManifestMeta(context);
+        String defaultPath = context.getPackageName() + ".provider";
+        if (data != null) {
+            return data.getString(SQLiteHelper.KEY_DATABASE_AUTHORITY, defaultPath);
+        }
+        return defaultPath;
+    }
+
     public static String getDatabaseName(Context context) {
         Bundle data = getManifestMeta(context);
         String defaultName = context.getPackageName().replaceAll("\\.", "_") + ".db";
-        if (data != null) {
+        if (data != null && data.containsKey(SQLiteHelper.KEY_DATABASE_NAME)) {
             return data.getString(SQLiteHelper.KEY_DATABASE_NAME, defaultName);
         }
         if (SQLiteHelper.mobileORMConfigListener != null) {

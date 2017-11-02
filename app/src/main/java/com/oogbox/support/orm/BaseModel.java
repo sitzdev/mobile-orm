@@ -5,21 +5,22 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
-import com.oogbox.support.orm.annotation.DataModel;
-import com.oogbox.support.orm.data.ORecord;
-import com.oogbox.support.orm.data.ORecordValue;
-import com.oogbox.support.orm.data.RelationOperation;
-import com.oogbox.support.orm.data.RelationValue;
-import com.oogbox.support.orm.helper.M2MTable;
-import com.oogbox.support.orm.helper.SQLBuilder;
-import com.oogbox.support.orm.helper.SQLiteHelper;
-import com.oogbox.support.orm.types.ODateTime;
-import com.oogbox.support.orm.types.OInteger;
-import com.oogbox.support.orm.types.OManyToMany;
-import com.oogbox.support.orm.types.OManyToOne;
-import com.oogbox.support.orm.types.OOneToMany;
-import com.oogbox.support.orm.types.helper.OFieldType;
+import com.oogbox.support.orm.core.annotation.DataModel;
+import com.oogbox.support.orm.core.data.ORecord;
+import com.oogbox.support.orm.core.data.ORecordValue;
+import com.oogbox.support.orm.core.data.RelationOperation;
+import com.oogbox.support.orm.core.data.RelationValue;
+import com.oogbox.support.orm.core.helper.M2MTable;
+import com.oogbox.support.orm.core.helper.SQLBuilder;
+import com.oogbox.support.orm.core.helper.SQLiteHelper;
+import com.oogbox.support.orm.core.types.ODateTime;
+import com.oogbox.support.orm.core.types.OInteger;
+import com.oogbox.support.orm.core.types.OManyToMany;
+import com.oogbox.support.orm.core.types.OManyToOne;
+import com.oogbox.support.orm.core.types.OOneToMany;
+import com.oogbox.support.orm.core.types.helper.OFieldType;
 import com.oogbox.support.orm.utils.OOGDateUtils;
+import com.oogbox.support.orm.utils.ObjectByteUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -111,7 +112,7 @@ public abstract class BaseModel extends SQLiteHelper {
         fields.addAll(Arrays.asList(getClass().getDeclaredFields()));
         for (Field field : fields) {
             if (field.getType().getSuperclass()
-                    .isAssignableFrom(OFieldType.class)) {
+                    .getCanonicalName().equals(OFieldType.class.getCanonicalName())) {
                 field.setAccessible(true);
                 try {
                     OFieldType type = (OFieldType) field.get(this);
@@ -126,7 +127,7 @@ public abstract class BaseModel extends SQLiteHelper {
     }
 
     /**
-     * Get the SQLBuilder for base statements (create)
+     * Get the SQLBuilder for base statements (insert)
      *
      * @return SQLBuilder object with model binding
      */
@@ -208,7 +209,7 @@ public abstract class BaseModel extends SQLiteHelper {
      * Here, when creating record in model it will check for relation records also
      * <p>
      * First many to one records are mapped with valid database id (if user passed new record object
-     * it will create record to related model first and than apply its new id to record to maintain local
+     * it will insert record to related model first and than apply its new id to record to maintain local
      * relationship between records)
      * <p>
      * Also One to many and Many to Many records are handled after creating main record.
@@ -488,4 +489,59 @@ public abstract class BaseModel extends SQLiteHelper {
             }
         }
     }
+
+    /**
+     * Get data resolver for handling Content Provider requests
+     *
+     * @return data resolver object
+     */
+    public DataResolver getResolver() {
+        return DataResolver.get(getContext(), this);
+    }
+
+    /**
+     * Responsible for generating ORecordValue from ContentValues. Used by ContentProvider
+     *
+     * @param values ContentValues from ContentProvider
+     * @return insert ORecordValues with Many2Many, One2Many and Many2One object binding
+     */
+    public ORecordValue createRecordValues(ContentValues values) {
+        ORecordValue recordValue = new ORecordValue();
+        for (OFieldType column : getColumns()) {
+            if (values.containsKey(column.getFieldName())) {
+                Object value = values.get(column.getFieldName());
+                if (column instanceof OManyToOne) {
+                    if (value instanceof byte[]) {
+                        try {
+                            ORecordValue m2oValue = (ORecordValue)
+                                    ObjectByteUtils.byteToObject((byte[]) value);
+                            recordValue.put(column.getFieldName(), m2oValue);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    } else if (value instanceof Integer) {
+                        recordValue.put(column.getFieldName(), value);
+                    }
+                } else if (column instanceof OOneToMany ||
+                        column instanceof OManyToMany) {
+                    try {
+                        RelationValue relationValue =
+                                (RelationValue) ObjectByteUtils.byteToObject((byte[]) value);
+                        recordValue.put(column.getFieldName(), relationValue);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    recordValue.put(column.getFieldName(), values.get(column.getFieldName()));
+                }
+            }
+        }
+        return recordValue;
+    }
+
+    @Override
+    public String toString() {
+        return "Model(" + getModelName() + ")";
+    }
+
 }
