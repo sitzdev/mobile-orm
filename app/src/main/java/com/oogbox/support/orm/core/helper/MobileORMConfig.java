@@ -44,4 +44,5 @@ public abstract class MobileORMConfig {
         return null;
     }
 
+    public abstract String authority();
 }

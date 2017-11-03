@@ -39,6 +39,12 @@ public class MetaReader {
     }
 
     public static String getDatabaseAuthority(Context context) {
+
+        MobileORMConfig config = SQLiteHelper.getConfig();
+        if (config != null && config.authority() != null) {
+            return config.authority();
+        }
+
         Bundle data = getManifestMeta(context);
         String defaultPath = context.getPackageName() + ".provider";
         if (data != null) {
