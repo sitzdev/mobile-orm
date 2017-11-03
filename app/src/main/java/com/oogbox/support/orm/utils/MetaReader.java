@@ -6,7 +6,9 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 
 import com.oogbox.support.orm.core.helper.SQLiteHelper;
-import com.oogbox.support.orm.core.listeners.MobileORMConfigListener;
+import com.oogbox.support.orm.core.helper.MobileORMConfig;
+
+import java.lang.reflect.Constructor;
 
 public class MetaReader {
 
@@ -22,12 +24,13 @@ public class MetaReader {
         return null;
     }
 
-    public static Class<? extends MobileORMConfigListener> getConfigClass(Context context) {
+    public static MobileORMConfig getConfig(Context context) {
         Bundle data = getManifestMeta(context);
         if (data != null && data.containsKey(SQLiteHelper.KEY_DATABASE_CONFIG)) {
             try {
-                return (Class<? extends MobileORMConfigListener>)
-                        Class.forName(data.getString(SQLiteHelper.KEY_DATABASE_CONFIG));
+                Class<?> config = Class.forName(data.getString(SQLiteHelper.KEY_DATABASE_CONFIG));
+                Constructor constructor = config.getConstructor(Context.class);
+                return (MobileORMConfig) constructor.newInstance(context);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -50,10 +53,10 @@ public class MetaReader {
         if (data != null && data.containsKey(SQLiteHelper.KEY_DATABASE_NAME)) {
             return data.getString(SQLiteHelper.KEY_DATABASE_NAME, defaultName);
         }
-        if (SQLiteHelper.mobileORMConfigListener != null) {
+        MobileORMConfig config = SQLiteHelper.getConfig();
+        if (config != null) {
             try {
-                MobileORMConfigListener config = SQLiteHelper.mobileORMConfigListener.newInstance();
-                String dbName = config.getDatabaseName(context);
+                String dbName = config.getDatabaseName();
                 if (dbName != null) {
                     return dbName;
                 }

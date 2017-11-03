@@ -6,23 +6,23 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.oogbox.support.orm.BaseModel;
-import com.oogbox.support.orm.core.listeners.MobileORMConfigListener;
 import com.oogbox.support.orm.utils.MetaReader;
 
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.List;
 
 public abstract class SQLiteHelper extends SQLiteOpenHelper {
 
     private static final String TAG = SQLiteHelper.class.getSimpleName();
+    private static MobileORMConfig mobileORMConfig;
     public static final String PROCESSOR_CLASS_PATH = "com.oogbox.runtime.orm.MobileORMConfig";
     public static final String KEY_DATABASE_CONFIG = "DATABASE_CONFIG";
     public static final String KEY_DATABASE_NAME = "DATABASE_NAME";
     public static final String KEY_DATABASE_VERSION = "DATABASE_VERSION";
     public static final String KEY_DATABASE_DEBUG = "DATABASE_DEBUG";
-    public static final String KEY_DATABASE_AUTHORITY = "DATABASE_AUTHORITY";
 
-    public static Class<? extends MobileORMConfigListener> mobileORMConfigListener;
+    public static final String KEY_DATABASE_AUTHORITY = "DATABASE_AUTHORITY";
 
     private Context context;
 
@@ -30,17 +30,27 @@ public abstract class SQLiteHelper extends SQLiteOpenHelper {
         super(context, MetaReader.getDatabaseName(context), null,
                 MetaReader.getDatabaseVersion(context));
         this.context = context;
-        if (mobileORMConfigListener == null) {
+        if (mobileORMConfig == null) {
             // No mobile orm config called. finding processor generated config.
             try {
                 Class<?> processorCls = Class.forName(PROCESSOR_CLASS_PATH);
                 if (processorCls != null) {
-                    mobileORMConfigListener = (Class<? extends MobileORMConfigListener>) processorCls;
+                    Constructor constructor = processorCls.getConstructor(Context.class);
+                    mobileORMConfig = (MobileORMConfig) constructor.newInstance(context);
                 }
             } catch (Exception e) {
-                Log.w("MobileORM->init()", "No Configuration found. Please call MobileORM.init() from your application class or use mobile-orm-compiler.");
+                // No config defined in processor, trying to get from manifest
+                mobileORMConfig = MetaReader.getConfig(context);
             }
         }
+    }
+
+    public static void setConfig(MobileORMConfig config) {
+        mobileORMConfig = config;
+    }
+
+    public static MobileORMConfig getConfig() {
+        return mobileORMConfig;
     }
 
     public Context getContext() {
@@ -62,13 +72,12 @@ public abstract class SQLiteHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase sqLiteDatabase) {
-        if (mobileORMConfigListener != null) {
+        if (mobileORMConfig != null) {
             try {
                 Log.v(TAG, "Database Name   : " + getDatabaseName());
-                MobileORMConfigListener listener = mobileORMConfigListener.newInstance();
-                List<BaseModel> models = listener.getModels(context);
+                HashMap<String, BaseModel> models = mobileORMConfig.getModels();
                 if (models != null) {
-                    for (BaseModel model : models) {
+                    for (BaseModel model : models.values()) {
                         SQLBuilder builder = model.getSQLBuilder();
                         sqLiteDatabase.execSQL(builder.createStatement());
                         Log.v(TAG, "Table created " + model.getTableName());

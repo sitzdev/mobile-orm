@@ -13,12 +13,11 @@ import android.support.annotation.Nullable;
 
 import com.oogbox.support.orm.BaseModel;
 import com.oogbox.support.orm.core.helper.SQLiteHelper;
-import com.oogbox.support.orm.core.listeners.MobileORMConfigListener;
+import com.oogbox.support.orm.core.helper.MobileORMConfig;
 import com.oogbox.support.orm.utils.MetaReader;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
-import java.util.List;
 
 public abstract class ModelContentProvider extends ContentProvider {
 
@@ -53,16 +52,15 @@ public abstract class ModelContentProvider extends ContentProvider {
     }
 
     private void bindModelMatcher() {
-        Class<?> configClass = SQLiteHelper.mobileORMConfigListener;
-        if (configClass == null) {
-            configClass = SQLiteHelper.mobileORMConfigListener = MetaReader.getConfigClass(getContext());
+        MobileORMConfig config = SQLiteHelper.getConfig();
+        if (config == null) {
+            config = MetaReader.getConfig(getContext());
         }
-        if (configClass != null) {
+        if (config != null) {
             try {
-                MobileORMConfigListener config = (MobileORMConfigListener) configClass.newInstance();
-                List<BaseModel> models = config.getModels(getContext());
+                HashMap<String, BaseModel> models = config.getModels();
                 if (models != null) {
-                    for (BaseModel model : config.getModels(getContext())) {
+                    for (BaseModel model : models.values()) {
                         setMatcher(model.getModelName(), MATCH_COLLECTION);
                         setMatcher(model.getModelName() + "/#", MATCH_SINGLE_ROW);
                         modelRegistry.put(model.getModelName(), model.getClass().getCanonicalName());
