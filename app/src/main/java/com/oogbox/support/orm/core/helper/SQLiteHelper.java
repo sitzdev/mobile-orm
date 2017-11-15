@@ -10,7 +10,6 @@ import com.oogbox.support.orm.utils.MetaReader;
 
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
-import java.util.List;
 
 public abstract class SQLiteHelper extends SQLiteOpenHelper {
 

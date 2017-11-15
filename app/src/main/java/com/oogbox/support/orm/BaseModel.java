@@ -108,8 +108,9 @@ public abstract class BaseModel extends SQLiteHelper {
     public List<OFieldType> getColumns() {
         List<OFieldType> columns = new ArrayList<>();
         List<Field> fields = new ArrayList<>();
-        fields.addAll(Arrays.asList(getClass().getSuperclass().getDeclaredFields()));
+        fields.addAll(getParentFields(getClass().getSuperclass()));
         fields.addAll(Arrays.asList(getClass().getDeclaredFields()));
+
         for (Field field : fields) {
             if (field.getType().getSuperclass()
                     .getCanonicalName().equals(OFieldType.class.getCanonicalName())) {
@@ -124,6 +125,15 @@ public abstract class BaseModel extends SQLiteHelper {
             }
         }
         return columns;
+    }
+
+    private List<Field> getParentFields(Class cls) {
+        List<Field> fields = new ArrayList<>();
+        if (!cls.getCanonicalName().equals(BaseModel.class.getCanonicalName())) {
+            fields.addAll(getParentFields(cls.getSuperclass()));
+        }
+        fields.addAll(Arrays.asList(cls.getDeclaredFields()));
+        return fields;
     }
 
     /**
@@ -543,5 +553,4 @@ public abstract class BaseModel extends SQLiteHelper {
     public String toString() {
         return "Model(" + getModelName() + ")";
     }
-
 }

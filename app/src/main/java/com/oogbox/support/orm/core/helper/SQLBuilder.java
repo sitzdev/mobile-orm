@@ -36,7 +36,7 @@ public class SQLBuilder {
                 }
 
                 if (field.getDefaultValue() != null) {
-                    sql.append("DEFAULT ");
+                    sql.append(" DEFAULT ");
                     if (field.getDefaultValue() instanceof String)
                         sql.append("'").append(field.getDefaultValue()).append("'");
                     else
